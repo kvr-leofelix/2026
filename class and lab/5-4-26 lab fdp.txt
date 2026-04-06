@@ -1,0 +1,66 @@
+leofelix@leofelix:~/ros2_ws$ cd ..
+leofelix@leofelix:~$ mkdirros_lab
+mkdirros_lab: command not found
+leofelix@leofelix:~$ mkdir ros_lab
+leofelix@leofelix:~$ cd ros_lab/
+leofelix@leofelix:~/ros_lab$ ls
+leofelix@leofelix:~/ros_lab$ mkdir src
+leofelix@leofelix:~/ros_lab$ ls
+src
+leofelix@leofelix:~/ros_lab$ source install/setup.bash
+-bash: install/setup.bash: No such file or directory
+leofelix@leofelix:~/ros_lab$ colcon build
+
+Summary: 0 packages finished [0.75s]
+leofelix@leofelix:~/ros_lab$ source install/setup.bash
+leofelix@leofelix:~/ros_lab$ ros2 pkd create --build-type ament_python my_python_pkg^C
+leofelix@leofelix:~/ros_lab$ cd src
+leofelix@leofelix:~/ros_lab/src$ ros2 pkg create --build-type ament_python my_python_pkg
+going to create a new package
+package name: my_python_pkg
+destination directory: /home/leofelix/ros_lab/src
+package format: 3
+version: 0.0.0
+description: TODO: Package description
+maintainer: ['leofelix <leofelix@todo.todo>']
+licenses: ['TODO: License declaration']
+build type: ament_python
+dependencies: []
+creating folder ./my_python_pkg
+creating ./my_python_pkg/package.xml
+creating source folder
+creating folder ./my_python_pkg/my_python_pkg
+creating ./my_python_pkg/setup.py
+creating ./my_python_pkg/setup.cfg
+creating folder ./my_python_pkg/resource
+creating ./my_python_pkg/resource/my_python_pkg
+creating ./my_python_pkg/my_python_pkg/__init__.py
+creating folder ./my_python_pkg/test
+creating ./my_python_pkg/test/test_copyright.py
+creating ./my_python_pkg/test/test_flake8.py
+creating ./my_python_pkg/test/test_pep257.py
+
+[WARNING]: Unknown license 'TODO: License declaration'.  This has been set in the package.xml, but no LICENSE file has been created.
+It is recommended to use one of the ament license identifiers:
+Apache-2.0
+BSL-1.0
+BSD-2.0
+BSD-2-Clause
+BSD-3-Clause
+GPL-3.0-only
+LGPL-3.0-only
+MIT
+MIT-0
+leofelix@leofelix:~/ros_lab/src$ ls
+my_python_pkg
+leofelix@leofelix:~/ros_lab/src$ cd my_python_pkg/
+leofelix@leofelix:~/ros_lab/src/my_python_pkg$ ls
+my_python_pkg  package.xml  resource  setup.cfg  setup.py  test
+leofelix@leofelix:~/ros_lab/src/my_python_pkg$ cd ..
+leofelix@leofelix:~/ros_lab/src$ cd ..
+leofelix@leofelix:~/ros_lab$ colcon build
+Starting >>> my_python_pkg
+Finished <<< my_python_pkg [4.55s]
+
+Summary: 1 package finished [4.91s]
+leofelix@leofelix:~/ros_lab$

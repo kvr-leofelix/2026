@@ -1,0 +1,1 @@
+# ctrl+f2+backspace delete all the element with same name

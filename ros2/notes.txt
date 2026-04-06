@@ -1,0 +1,4 @@
+COMMAND TO TYPE ON TERMINAL:
+
+ros2 pkg list
+ros2 pkg executables

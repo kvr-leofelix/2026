@@ -1,0 +1,1 @@
+density_at_x0 = kde.evaluate(x0)[0]

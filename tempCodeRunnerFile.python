@@ -1,0 +1,50 @@
+import requests
+import pandas as pd
+import json
+
+# 1. API Configuration
+URL = "https://api.campaignx.com/api/v1/get_customer_cohort"
+HEADERS = {
+    "X-API-Key": "xK8mP3nR7sT9vW2yZ5bN4mQ6jL1hG0fD",
+    "Content-Type": "application/json"
+}
+
+def extract_cohort_data():
+    try:
+        # 2. Make the GET request
+        print(f"Connecting to CampaignX API...")
+        response = requests.get(URL, headers=HEADERS)
+        
+        # Check if the request was successful (Status Code 200)
+        response.raise_for_status()
+        
+        # 3. Parse JSON data
+        raw_data = response.json()
+        
+        # Note: APIs often nest data inside a key like 'data' or 'customers'
+        # Adjust the key below based on the actual API response structure
+        if isinstance(raw_data, dict):
+            # Try to find the list of records (e.g., raw_data['customers'])
+            # If the API returns a list directly, use raw_data
+            df = pd.DataFrame(raw_data.get('data', raw_data))
+        else:
+            df = pd.DataFrame(raw_data)
+
+        # 4. Save to CSV for easy viewing in Excel
+        output_file = "customer_cohort_extract.csv"
+        df.to_csv(output_file, index=False)
+        
+        print(f"Successfully extracted {len(df)} records!")
+        print(f"File saved as: {output_file}")
+        
+        # Display the first few rows (head)
+        print("\n--- Data Preview ---")
+        print(df.head())
+
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP Error: {err}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+if __name__ == "__main__":
+    extract_cohort_data()

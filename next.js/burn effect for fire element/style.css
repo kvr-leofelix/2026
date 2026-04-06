@@ -1,0 +1,30 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+} 
+
+
+/* revealed image */
+.image-layer {
+  position: fixed;
+  inset: 0;
+
+background: url("./pic.avif") center/cover no-repeat;
+
+
+  z-index: 1;
+}
+
+
+#burnCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}

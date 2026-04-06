@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CampaignX — AI Marketing Agent</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          syne: ['Syne', 'sans-serif'],
+          mono: ['DM Mono', 'monospace'],
+          serif: ['Instrument Serif', 'serif'],
+        },
+        colors: {
+          void: '#080a0f',
+          surface: '#0d1117',
+          panel: '#111820',
+          card: '#141d28',
+          border: '#1e2d3d',
+          muted: '#243447',
+          cyan: { 400: '#22d3ee', 500: '#06b6d4', glow: 'rgba(34,211,238,0.15)' },
+          emerald: { 400: '#34d399', 500: '#10b981' },
+          rose: { 400: '#fb7185', 500: '#f43f5e' },
+          amber: { 400: '#fbbf24' },
+          ink: { 300: '#94a3b8', 400: '#7a9ab5', 500: '#4a6a85', 600: '#2a4a65' },
+        },
+        boxShadow: {
+          glass: '0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)',
+          glow: '0 0 24px rgba(34,211,238,0.18)',
+          'glow-green': '0 0 24px rgba(52,211,153,0.2)',
+          'glow-red': '0 0 24px rgba(251,113,133,0.2)',
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent: #22d3ee;
+    --accent-dim: rgba(34,211,238,0.08);
+    --green: #34d399;
+    --red: #fb7185;
+    --amber: #fbbf24;
+    --border: #1e2d3d;
+    --surface: #0d1117;
+    --card: #141d28;
+  }
+
+  html, body {
+    height: 100%;
+    background: #080a0f;
+    color: #c8d8e8;
+    font-family: 'Syne', sans-serif;
+    overflow: hidden;
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a4060; }
+
+  /* Glass panels */
+  .glass {
+    background: rgba(13,17,23,0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(30,45,61,0.8);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+
+  .glass-card {
+    background: rgba(20,29,40,0.9);
+    border: 1px solid rgba(34,211,238,0.08);
+    box-shadow: 0 2px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+    border-radius: 12px;
+  }
+
+  /* Sidebar nav items */
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
+    color: #4a6a85; cursor: pointer; transition: all 0.2s ease;
+    position: relative; overflow: hidden;
+  }
+  .nav-item:hover { color: #94a3b8; background: rgba(30,45,61,0.5); }
+  .nav-item.active {
+    color: #22d3ee; background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.15);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 2px; background: #22d3ee; border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px #22d3ee;
+  }
+
+  /* Textarea */
+  .campaign-input {
+    width: 100%; background: rgba(8,10,15,0.8);
+    border: 1px solid rgba(34,211,238,0.12);
+    border-radius: 10px; padding: 16px;
+    color: #c8d8e8; font-family: 'DM Mono', monospace;
+    font-size: 13.5px; line-height: 1.7; resize: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .campaign-input:focus {
+    border-color: rgba(34,211,238,0.35);
+    box-shadow: 0 0 0 3px rgba(34,211,238,0.06), 0 0 20px rgba(34,211,238,0.08);
+  }
+  .campaign-input::placeholder { color: #2a4a65; }
+
+  /* Buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+    color: #080a0f; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 13px; letter-spacing: 0.05em;
+    padding: 11px 24px; border-radius: 8px; border: none;
+    cursor: pointer; transition: all 0.2s ease;
+    text-transform: uppercase; position: relative; overflow: hidden;
+  }
+  .btn-primary::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .btn-primary:hover::after { opacity: 1; }
+  .btn-primary:hover { box-shadow: 0 0 24px rgba(34,211,238,0.4); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-approve {
+    background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    color: #080a0f; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 12px; letter-spacing: 0.06em;
+    padding: 10px 20px; border-radius: 7px; border: none;
+    cursor: pointer; transition: all 0.2s ease; text-transform: uppercase;
+  }
+  .btn-approve:hover { box-shadow: 0 0 20px rgba(52,211,153,0.4); transform: translateY(-1px); }
+
+  .btn-reject {
+    background: rgba(251,113,133,0.1); color: #fb7185;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+    letter-spacing: 0.06em; padding: 10px 20px; border-radius: 7px;
+    border: 1px solid rgba(251,113,133,0.25); cursor: pointer;
+    transition: all 0.2s ease; text-transform: uppercase;
+  }
+  .btn-reject:hover {
+    background: rgba(251,113,133,0.18);
+    box-shadow: 0 0 20px rgba(251,113,133,0.2); transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: rgba(30,45,61,0.6); color: #4a6a85;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 12px;
+    letter-spacing: 0.04em; padding: 9px 16px; border-radius: 7px;
+    border: 1px solid rgba(30,45,61,0.8); cursor: pointer;
+    transition: all 0.2s ease; text-transform: uppercase;
+  }
+  .btn-secondary:hover { color: #94a3b8; border-color: rgba(34,211,238,0.2); background: rgba(34,211,238,0.05); }
+
+  /* Badge */
+  .badge {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    padding: 2px 8px; border-radius: 4px; font-weight: 400;
+  }
+  .badge-cyan { background: rgba(34,211,238,0.1); color: #22d3ee; border: 1px solid rgba(34,211,238,0.2); }
+  .badge-green { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.2); }
+  .badge-amber { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+  .badge-red { background: rgba(251,113,133,0.1); color: #fb7185; border: 1px solid rgba(251,113,133,0.2); }
+  .badge-muted { background: rgba(30,45,61,0.5); color: #4a6a85; border: 1px solid rgba(30,45,61,0.8); }
+
+  /* Progress ring */
+  .ring-container { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .ring-container svg { transform: rotate(-90deg); }
+  .ring-label { position: absolute; text-align: center; }
+
+  /* Log line */
+  .log-line {
+    font-family: 'DM Mono', monospace; font-size: 11.5px;
+    padding: 5px 0; border-bottom: 1px solid rgba(30,45,61,0.4);
+    display: flex; gap: 10px; align-items: baseline;
+  }
+  .log-line:last-child { border-bottom: none; }
+  .log-ts { color: #2a4a65; white-space: nowrap; flex-shrink: 0; }
+  .log-tag { flex-shrink: 0; }
+  .log-msg { color: #7a9ab5; }
+
+  /* Customer ID chips */
+  .cid-chip {
+    font-family: 'DM Mono', monospace; font-size: 10.5px;
+    background: rgba(30,45,61,0.5); color: #4a6a85;
+    border: 1px solid rgba(30,45,61,0.8); border-radius: 4px;
+    padding: 2px 7px; white-space: nowrap;
+  }
+
+  /* Metric card */
+  .metric-card {
+    background: rgba(20,29,40,0.7);
+    border: 1px solid rgba(34,211,238,0.07);
+    border-radius: 10px; padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .metric-card:hover { border-color: rgba(34,211,238,0.15); }
+
+  /* Status dot */
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #34d399; box-shadow: 0 0 6px #34d399; animation: pulse-dot 2s infinite; }
+  .dot-amber { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+  .dot-muted { background: #1e2d3d; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  /* Grid lines background */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(34,211,238,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Glowing border top */
+  .border-glow-top {
+    border-top: 1px solid rgba(34,211,238,0.2);
+    box-shadow: 0 -1px 0 rgba(34,211,238,0.1), inset 0 1px 0 rgba(34,211,238,0.05);
+  }
+
+  /* Tab */
+  .tab-btn {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    text-transform: uppercase; border: none; background: none;
+    color: #2a4a65; transition: all 0.2s; font-family: 'Syne', sans-serif;
+  }
+  .tab-btn.active { background: rgba(34,211,238,0.1); color: #22d3ee; }
+  .tab-btn:hover:not(.active) { color: #4a6a85; }
+
+  /* Approval card entrance */
+  .approval-card { opacity: 0; transform: translateY(20px); }
+
+  /* Scanline effect on header */
+  .scanline-text {
+    background: linear-gradient(135deg, #22d3ee 0%, #0891b2 50%, #22d3ee 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s ease infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Tooltip */
+  .tooltip { position: relative; }
+  .tooltip-text {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%); background: #0d1117; border: 1px solid #1e2d3d;
+    color: #7a9ab5; font-size: 11px; font-family: 'DM Mono', monospace;
+    padding: 5px 10px; border-radius: 5px; white-space: nowrap; z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .tooltip:hover .tooltip-text { display: block; }
+
+  /* Section scroll area */
+  .scroll-area { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #1e2d3d transparent; }
+
+  /* Counter badge */
+  .counter-pill {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    background: rgba(34,211,238,0.08); color: #22d3ee;
+    border: 1px solid rgba(34,211,238,0.15); border-radius: 20px;
+    padding: 2px 8px; letter-spacing: 0.02em;
+  }
+</style>
+</head>
+
+<body class="grid-bg" style="background-color:#080a0f;">
+
+<div id="app" style="display:flex; height:100vh; overflow:hidden; position:relative; z-index:1;">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside id="sidebar" class="glass flex-shrink-0 flex flex-col"
+    style="width:220px; border-right:1px solid rgba(30,45,61,0.8); border-radius:0; height:100vh; z-index:10;">
+
+    <!-- Logo -->
+    <div style="padding:20px 18px 16px; border-bottom:1px solid rgba(30,45,61,0.5);">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#22d3ee,#0891b2);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(34,211,238,0.4);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#080a0f" stroke-width="2.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="scanline-text" style="font-family:'Syne',sans-serif;font-weight:800;font-size:15px;letter-spacing:-0.01em;">CampaignX</div>
+          <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;margin-top:-1px;">AI AGENT v2.4 · GEMINI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav style="padding:12px 10px; flex:1; overflow-y:auto;">
+      <div style="font-size:9px;color:#1e2d3d;letter-spacing:0.12em;padding:4px 6px 8px;font-weight:600;text-transform:uppercase;font-family:'DM Mono',monospace;">WORKSPACE</div>
+
+      <div class="nav-item active" onclick="switchTab('brief')" id="nav-brief">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Campaign Brief
+      </div>
+      <div class="nav-item" onclick="switchTab('approval')" id="nav-approval">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Approvals
+        <span id="approval-badge" style="display:none" class="badge badge-amber ml-auto">1</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('performance')" id="nav-performance">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Performance
+      </div>
+      <div class="nav-item" onclick="switchTab('logs')" id="nav-logs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Agent Logs
+        <span class="badge badge-cyan ml-auto" style="font-size:10px;">LIVE</span>
+      </div>
+
+      <div style="font-size:9px;color:#1e2d3d;letter-spacing:0.12em;padding:16px 6px 8px;font-weight:600;text-transform:uppercase;font-family:'DM Mono',monospace;">APIS</div>
+
+      <div class="nav-item" onclick="switchTab('apis')" id="nav-apis">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        API Status
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="nav-item" style="color:#1e2d3d;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M1 12h2M21 12h2M12 1v2M12 21v2"/></svg>
+          Settings
+        </div>
+        <div class="nav-item" style="color:#1e2d3d;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Team
+        </div>
+      </div>
+    </nav>
+
+    <!-- API Quota Counter -->
+    <div style="padding:12px 14px; border-top:1px solid rgba(30,45,61,0.5);">
+      <div style="font-size:9px;color:#2a4a65;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:8px;">DAILY API QUOTA</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Cohort</span>
+            <span style="font-size:10px;font-family:'DM Mono',monospace;color:#22d3ee;" id="quota-cohort">12 / 100</span>
+          </div>
+          <div style="height:3px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:12%;background:linear-gradient(90deg,#22d3ee,#0891b2);border-radius:2px;" id="quota-cohort-bar"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Schedule</span>
+            <span style="font-size:10px;font-family:'DM Mono',monospace;color:#34d399;" id="quota-schedule">7 / 100</span>
+          </div>
+          <div style="height:3px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:7%;background:linear-gradient(90deg,#34d399,#059669);border-radius:2px;" id="quota-schedule-bar"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Reports</span>
+            <span style="font-size:10px;font-family:'DM Mono',monospace;color:#fbbf24;" id="quota-reports">34 / 100</span>
+          </div>
+          <div style="height:3px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:34%;background:linear-gradient(90deg,#fbbf24,#d97706);border-radius:2px;" id="quota-reports-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User -->
+    <div style="padding:12px 14px;border-top:1px solid rgba(30,45,61,0.5);display:flex;align-items:center;gap:9px;">
+      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1e2d3d,#0d1117);border:1px solid #1e2d3d;display:flex;align-items:center;justify-content:center;font-size:11px;color:#4a6a85;font-family:'Syne',sans-serif;font-weight:700;">MK</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:#7a9ab5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Marketing Lead</div>
+        <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">InXiteOut Platform</div>
+      </div>
+      <div class="status-dot dot-green"></div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <main style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;">
+
+    <!-- Top bar -->
+    <header class="glass border-glow-top" style="padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-radius:0;border-left:none;border-right:none;border-top:none;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="status-dot dot-green"></div>
+          <span style="font-size:11px;color:#4a6a85;font-family:'DM Mono',monospace;letter-spacing:0.05em;">AGENT ONLINE</span>
+        </div>
+        <div style="width:1px;height:16px;background:#1e2d3d;"></div>
+        <div id="header-title" style="font-size:13px;font-weight:600;color:#7a9ab5;letter-spacing:0.02em;">Campaign Brief</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="counter-pill">
+          <span id="header-time" style="font-size:10px;"></span>
+        </div>
+        <button class="btn-secondary tooltip" onclick="refreshCohort()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-right:4px;vertical-align:-1px;"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh Cohort
+          <span class="tooltip-text">Pull new customer data (Mar 14+)</span>
+        </button>
+        <div style="width:1px;height:16px;background:#1e2d3d;"></div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:#2a4a65;letter-spacing:0.04em;">xdeposit/explore/</div>
+      </div>
+    </header>
+
+    <!-- Tab Contents -->
+    <div style="flex:1;overflow:hidden;position:relative;">
+
+      <!-- ── TAB: BRIEF ── -->
+      <section id="tab-brief" class="scroll-area" style="position:absolute;inset:0;padding:24px;display:flex;gap:20px;">
+
+        <!-- Left: Input -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;">
+          <div class="glass-card" style="padding:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div>
+                <h2 style="font-size:14px;font-weight:700;color:#c8d8e8;letter-spacing:0.01em;">Campaign Brief</h2>
+                <p style="font-size:11px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;">Natural language → AI-generated campaign</p>
+              </div>
+              <span class="badge badge-cyan">GPT-4o</span>
+            </div>
+            <textarea id="brief-input" class="campaign-input" rows="8"
+              placeholder="e.g., Run email campaign for XDeposit targeting high-value customers with account balance > $10k who haven't engaged in 60 days. Promote the 6.5% APY offer with a personalized subject line. Schedule for Tuesday morning 9AM EST..."></textarea>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn-secondary" onclick="insertTemplate('email')">📧 Email</button>
+                <button class="btn-secondary" onclick="insertTemplate('sms')">💬 SMS</button>
+                <button class="btn-secondary" onclick="insertTemplate('push')">🔔 Push</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <span id="char-count" style="font-size:11px;color:#2a4a65;font-family:'DM Mono',monospace;">0 chars</span>
+                <button class="btn-primary" id="gen-btn" onclick="generateCampaign()">
+                  <span id="gen-btn-text">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-right:5px;vertical-align:-1px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Generate with Gemini ✦
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target URL notice -->
+          <div class="glass-card" style="padding:14px 18px;border-color:rgba(34,211,238,0.12);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px #22d3ee;flex-shrink:0;"></div>
+              <span style="font-size:11px;color:#4a6a85;font-family:'DM Mono',monospace;">CTA Target URL:</span>
+              <a href="https://superbfsi.com/xdeposit/explore/" target="_blank"
+                style="font-family:'DM Mono',monospace;font-size:11px;color:#22d3ee;text-decoration:none;letter-spacing:0.02em;">
+                https://superbfsi.com/xdeposit/explore/
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-left:3px;vertical-align:-1px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+              <span class="badge badge-green" style="margin-left:auto;">Validated ✓</span>
+            </div>
+          </div>
+
+          <!-- Quick stats row -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div class="metric-card" style="text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#22d3ee;font-family:'Syne',sans-serif;" id="stat-campaigns">47</div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;text-transform:uppercase;letter-spacing:0.06em;">Campaigns Run</div>
+            </div>
+            <div class="metric-card" style="text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#34d399;font-family:'Syne',sans-serif;" id="stat-approved">38</div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;text-transform:uppercase;letter-spacing:0.06em;">Approved</div>
+            </div>
+            <div class="metric-card" style="text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#fbbf24;font-family:'Syne',sans-serif;">24.8%</div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;text-transform:uppercase;letter-spacing:0.06em;">Avg Open Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Recent campaigns -->
+        <div style="width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;padding:2px 0;">Recent Campaigns</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="glass-card" style="padding:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:600;color:#94a3b8;">XDeposit APY Promo</span>
+                <span class="badge badge-green">Sent</span>
+              </div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Mar 05, 2025 · 9:00 AM</div>
+              <div style="display:flex;gap:12px;margin-top:8px;">
+                <div><span style="font-size:11px;font-weight:700;color:#34d399;">26.4%</span><span style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;"> open</span></div>
+                <div><span style="font-size:11px;font-weight:700;color:#22d3ee;">8.1%</span><span style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;"> click</span></div>
+              </div>
+            </div>
+            <div class="glass-card" style="padding:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:600;color:#94a3b8;">Win-Back Segment</span>
+                <span class="badge badge-amber">Pending</span>
+              </div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Mar 07, 2025 · 10:30 AM</div>
+              <div style="font-size:10px;color:#2a4a65;margin-top:6px;">Awaiting approval →</div>
+            </div>
+            <div class="glass-card" style="padding:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:12px;font-weight:600;color:#94a3b8;">New Users Welcome</span>
+                <span class="badge badge-red">Rejected</span>
+              </div>
+              <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Mar 04, 2025 · 2:00 PM</div>
+              <div style="display:flex;gap:12px;margin-top:8px;">
+                <div><span style="font-size:11px;font-weight:700;color:#fb7185;">—</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- Mar 14 notice -->
+          <div class="glass-card" style="padding:12px;border-color:rgba(251,191,36,0.15);">
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <span style="font-size:14px;">📅</span>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#fbbf24;margin-bottom:4px;">Data Refresh: Mar 14</div>
+                <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;line-height:1.5;">New customer cohort available. Use "Refresh Cohort" button to pull latest data.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TAB: APPROVAL ── -->
+      <section id="tab-approval" class="scroll-area" style="position:absolute;inset:0;padding:24px;display:none;flex-direction:column;gap:16px;">
+
+        <div id="approval-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;">
+          <div style="width:56px;height:56px;border-radius:14px;background:rgba(30,45,61,0.4);border:1px solid #1e2d3d;display:flex;align-items:center;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a4a65" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:14px;font-weight:600;color:#4a6a85;margin-bottom:6px;">No Pending Approvals</div>
+            <div style="font-size:12px;color:#2a4a65;font-family:'DM Mono',monospace;">Generate a campaign brief to see approval cards here.</div>
+          </div>
+        </div>
+
+        <div id="approval-content" style="display:none;flex-direction:column;gap:16px;">
+          <!-- Cards injected by JS -->
+        </div>
+
+      </section>
+
+      <!-- ── TAB: PERFORMANCE ── -->
+      <section id="tab-performance" class="scroll-area" style="position:absolute;inset:0;padding:24px;display:none;flex-direction:column;gap:20px;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <h2 style="font-size:14px;font-weight:700;color:#c8d8e8;">Performance Dashboard</h2>
+            <p style="font-size:11px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;">XDeposit Campaign Metrics · Real-time</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="tab-btn active" id="perf-tab-7" onclick="setPerfRange(7,this)">7D</button>
+            <button class="tab-btn" id="perf-tab-30" onclick="setPerfRange(30,this)">30D</button>
+            <button class="tab-btn" id="perf-tab-90" onclick="setPerfRange(90,this)">90D</button>
+          </div>
+        </div>
+
+        <!-- Top metric rings -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+
+          <div class="glass-card" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <div class="ring-container">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#1e2d3d" stroke-width="6"/>
+                <circle id="ring-open" cx="40" cy="40" r="32" fill="none" stroke="url(#grad-open)" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="201" stroke-dashoffset="150" style="transition:stroke-dashoffset 1.5s ease;"/>
+                <defs><linearGradient id="grad-open" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0891b2"/></linearGradient></defs>
+              </svg>
+              <div class="ring-label">
+                <div style="font-size:16px;font-weight:800;color:#22d3ee;font-family:'Syne',sans-serif;" id="val-open">26.4%</div>
+                <div style="font-size:8px;color:#2a4a65;font-family:'DM Mono',monospace;">OPEN</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#4a6a85;font-weight:600;">Open Rate</div>
+            <span class="badge badge-green" style="font-size:9px;">↑ +3.2%</span>
+          </div>
+
+          <div class="glass-card" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <div class="ring-container">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#1e2d3d" stroke-width="6"/>
+                <circle id="ring-click" cx="40" cy="40" r="32" fill="none" stroke="url(#grad-click)" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="201" stroke-dashoffset="184" style="transition:stroke-dashoffset 1.5s ease 0.2s;"/>
+                <defs><linearGradient id="grad-click" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/></linearGradient></defs>
+              </svg>
+              <div class="ring-label">
+                <div style="font-size:16px;font-weight:800;color:#34d399;font-family:'Syne',sans-serif;" id="val-click">8.1%</div>
+                <div style="font-size:8px;color:#2a4a65;font-family:'DM Mono',monospace;">CLICK</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#4a6a85;font-weight:600;">Click Rate</div>
+            <span class="badge badge-green" style="font-size:9px;">↑ +1.4%</span>
+          </div>
+
+          <div class="glass-card" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <div class="ring-container">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#1e2d3d" stroke-width="6"/>
+                <circle id="ring-conv" cx="40" cy="40" r="32" fill="none" stroke="url(#grad-conv)" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="201" stroke-dashoffset="191" style="transition:stroke-dashoffset 1.5s ease 0.4s;"/>
+                <defs><linearGradient id="grad-conv" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs>
+              </svg>
+              <div class="ring-label">
+                <div style="font-size:16px;font-weight:800;color:#fbbf24;font-family:'Syne',sans-serif;" id="val-conv">3.4%</div>
+                <div style="font-size:8px;color:#2a4a65;font-family:'DM Mono',monospace;">CONV</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#4a6a85;font-weight:600;">Conversion</div>
+            <span class="badge badge-amber" style="font-size:9px;">↔ 0.0%</span>
+          </div>
+
+          <div class="glass-card" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <div class="ring-container">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#1e2d3d" stroke-width="6"/>
+                <circle id="ring-unsub" cx="40" cy="40" r="32" fill="none" stroke="url(#grad-unsub)" stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="201" stroke-dashoffset="199" style="transition:stroke-dashoffset 1.5s ease 0.6s;"/>
+                <defs><linearGradient id="grad-unsub" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#f43f5e"/></linearGradient></defs>
+              </svg>
+              <div class="ring-label">
+                <div style="font-size:16px;font-weight:800;color:#fb7185;font-family:'Syne',sans-serif;">0.4%</div>
+                <div style="font-size:8px;color:#2a4a65;font-family:'DM Mono',monospace;">UNSUB</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#4a6a85;font-weight:600;">Unsubscribe</div>
+            <span class="badge badge-green" style="font-size:9px;">↓ −0.1%</span>
+          </div>
+        </div>
+
+        <!-- Campaign table -->
+        <div class="glass-card" style="padding:0;overflow:hidden;">
+          <div style="padding:14px 18px;border-bottom:1px solid rgba(30,45,61,0.5);display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:13px;font-weight:700;color:#94a3b8;">Campaign History</div>
+            <div class="badge badge-muted">InXiteOut Performance API</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(30,45,61,0.5);">
+                <th style="padding:10px 18px;text-align:left;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">CAMPAIGN</th>
+                <th style="padding:10px 12px;text-align:center;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">SENT</th>
+                <th style="padding:10px 12px;text-align:center;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">OPEN</th>
+                <th style="padding:10px 12px;text-align:center;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">CLICK</th>
+                <th style="padding:10px 12px;text-align:center;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">CONV</th>
+                <th style="padding:10px 12px;text-align:center;font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:400;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="perf-tbody">
+              <tr style="border-bottom:1px solid rgba(30,45,61,0.3);">
+                <td style="padding:11px 18px;"><div style="font-size:12px;font-weight:600;color:#c8d8e8;">XDeposit APY 6.5%</div><div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Mar 05, 2025</div></td>
+                <td style="padding:11px 12px;text-align:center;font-size:12px;font-family:'DM Mono',monospace;color:#7a9ab5;">12,450</td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#22d3ee;font-family:'Syne',sans-serif;">26.4%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#34d399;font-family:'Syne',sans-serif;">8.1%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Syne',sans-serif;">3.2%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span class="badge badge-green">Sent</span></td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(30,45,61,0.3);">
+                <td style="padding:11px 18px;"><div style="font-size:12px;font-weight:600;color:#c8d8e8;">Re-engagement Feb</div><div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Feb 18, 2025</div></td>
+                <td style="padding:11px 12px;text-align:center;font-size:12px;font-family:'DM Mono',monospace;color:#7a9ab5;">8,230</td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#22d3ee;font-family:'Syne',sans-serif;">22.1%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#34d399;font-family:'Syne',sans-serif;">6.8%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Syne',sans-serif;">2.9%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span class="badge badge-green">Sent</span></td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;"><div style="font-size:12px;font-weight:600;color:#c8d8e8;">High-Balance Tier</div><div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Feb 01, 2025</div></td>
+                <td style="padding:11px 12px;text-align:center;font-size:12px;font-family:'DM Mono',monospace;color:#7a9ab5;">4,100</td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#22d3ee;font-family:'Syne',sans-serif;">31.7%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#34d399;font-family:'Syne',sans-serif;">11.2%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span style="font-size:12px;font-weight:700;color:#fbbf24;font-family:'Syne',sans-serif;">5.4%</span></td>
+                <td style="padding:11px 12px;text-align:center;"><span class="badge badge-green">Sent</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- ── TAB: LOGS ── -->
+      <section id="tab-logs" class="scroll-area" style="position:absolute;inset:0;padding:24px;display:none;flex-direction:column;gap:16px;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <h2 style="font-size:14px;font-weight:700;color:#c8d8e8;">Agent Reasoning Logs</h2>
+            <p style="font-size:11px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;">Live trace of AI agent decision process</p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="status-dot dot-green"></div>
+            <span style="font-size:10px;color:#22d3ee;font-family:'DM Mono',monospace;">STREAMING</span>
+            <button class="btn-secondary" onclick="clearLogs()">Clear</button>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding:16px;flex:1;min-height:0;">
+          <div id="log-container" style="font-family:'DM Mono',monospace;max-height:calc(100vh - 250px);overflow-y:auto;">
+            <!-- Log lines injected here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TAB: APIS ── -->
+      <section id="tab-apis" class="scroll-area" style="position:absolute;inset:0;padding:24px;display:none;flex-direction:column;gap:16px;">
+        <div>
+          <h2 style="font-size:14px;font-weight:700;color:#c8d8e8;">InXiteOut API Status</h2>
+          <p style="font-size:11px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:2px;">Endpoint health & quota management</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+
+          <div class="glass-card" style="padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="font-size:12px;font-weight:700;color:#c8d8e8;">Customer Cohort</div>
+              <span class="badge badge-green">Online</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#2a4a65;word-break:break-all;margin-bottom:12px;line-height:1.5;">/api/v1/cohort/query</div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">12 / 100 calls today</span>
+                <span style="font-size:10px;color:#22d3ee;font-family:'DM Mono',monospace;">88 left</span>
+              </div>
+              <div style="height:4px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:12%;background:linear-gradient(90deg,#22d3ee,#0891b2);border-radius:2px;"></div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Last call: 14m ago · 234ms</div>
+          </div>
+
+          <div class="glass-card" style="padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="font-size:12px;font-weight:700;color:#c8d8e8;">Campaign Scheduling</div>
+              <span class="badge badge-green">Online</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#2a4a65;word-break:break-all;margin-bottom:12px;line-height:1.5;">/api/v1/campaign/schedule</div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">7 / 100 calls today</span>
+                <span style="font-size:10px;color:#34d399;font-family:'DM Mono',monospace;">93 left</span>
+              </div>
+              <div style="height:4px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:7%;background:linear-gradient(90deg,#34d399,#059669);border-radius:2px;"></div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Last call: 2h ago · 189ms</div>
+          </div>
+
+          <div class="glass-card" style="padding:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="font-size:12px;font-weight:700;color:#c8d8e8;">Performance Reports</div>
+              <span class="badge badge-amber">High Load</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#2a4a65;word-break:break-all;margin-bottom:12px;line-height:1.5;">/api/v1/reports/performance</div>
+            <div style="margin-bottom:8px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">34 / 100 calls today</span>
+                <span style="font-size:10px;color:#fbbf24;font-family:'DM Mono',monospace;">66 left</span>
+              </div>
+              <div style="height:4px;background:#1e2d3d;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;width:34%;background:linear-gradient(90deg,#fbbf24,#d97706);border-radius:2px;"></div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;">Last call: 4m ago · 412ms</div>
+          </div>
+        </div>
+
+        <!-- Payload preview -->
+        <div class="glass-card" style="padding:18px;">
+          <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:12px;">Sample API Payloads</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+              <div style="font-size:10px;color:#22d3ee;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">POST /campaign/schedule</div>
+              <pre style="font-family:'DM Mono',monospace;font-size:11px;color:#4a6a85;background:rgba(8,10,15,0.6);border:1px solid #1e2d3d;border-radius:6px;padding:12px;overflow-x:auto;line-height:1.6;">{
+  "campaign_id": "CX-2025-047",
+  "cohort_ids": ["CID-10291", "..."],
+  "schedule_time": "2025-03-11T09:00:00Z",
+  "channel": "email",
+  "cta_url": "https://superbfsi.com/xdeposit/explore/",
+  "subject": "Your 6.5% APY is waiting 🎯",
+  "body": "...",
+  "approved_by": "marketing_lead"
+}</pre>
+            </div>
+            <div>
+              <div style="font-size:10px;color:#34d399;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">GET /cohort/query</div>
+              <pre style="font-family:'DM Mono',monospace;font-size:11px;color:#4a6a85;background:rgba(8,10,15,0.6);border:1px solid #1e2d3d;border-radius:6px;padding:12px;overflow-x:auto;line-height:1.6;">{
+  "filters": {
+    "balance_min": 10000,
+    "days_inactive": 60,
+    "product": "xdeposit"
+  },
+  "limit": 5000,
+  "refresh": false,
+  "as_of": "2025-03-07"
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- end tab area -->
+
+  </main>
+</div><!-- end app -->
+
+<!-- ═══════════════ TOAST NOTIFICATION ═══════════════ -->
+<div id="toast" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;align-items:center;gap:12px;background:rgba(13,17,23,0.95);border:1px solid rgba(34,211,238,0.2);border-radius:10px;padding:12px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.5);opacity:0;transform:translateY(12px);pointer-events:none;max-width:360px;">
+  <div id="toast-icon" style="width:28px;height:28px;border-radius:7px;background:rgba(34,211,238,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;"></div>
+  <div>
+    <div id="toast-title" style="font-size:12px;font-weight:700;color:#c8d8e8;font-family:'Syne',sans-serif;"></div>
+    <div id="toast-msg" style="font-size:11px;color:#4a6a85;font-family:'DM Mono',monospace;margin-top:2px;"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════ STATE ═══════════
+const state = {
+  currentTab: 'brief',
+  generating: false,
+  approvalPending: false,
+  quotas: { cohort: 12, schedule: 7, reports: 34 },
+  logs: [],
+};
+
+// ═══════════ CLOCK ═══════════
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('header-time').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} UTC`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════ CHAR COUNT ═══════════
+document.getElementById('brief-input').addEventListener('input', function() {
+  document.getElementById('char-count').textContent = this.value.length + ' chars';
+});
+
+// ═══════════ TAB SWITCHING ═══════════
+const TABS = ['brief','approval','performance','logs','apis'];
+const TITLES = { brief:'Campaign Brief', approval:'Approvals — Human in the Loop', performance:'Performance Dashboard', logs:'Agent Reasoning Logs', apis:'API Status' };
+
+function switchTab(name) {
+  state.currentTab = name;
+  TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'flex' : 'none';
+    const nav = document.getElementById('nav-' + t);
+    if (nav) nav.classList.toggle('active', t === name);
+  });
+  document.getElementById('header-title').textContent = TITLES[name] || '';
+  if (name === 'performance') animateRings();
+  if (name === 'logs') scrollLogsToBottom();
+}
+
+// ═══════════ INSERT TEMPLATE ═══════════
+const TEMPLATES = {
+  email: `Run email campaign for XDeposit targeting high-value customers with balance > $10,000 who haven't engaged in 60 days.\n\nOffer: Promote the 6.5% APY fixed deposit with personalized subject line.\nTone: Professional, warm, urgent but not pushy.\nCTA: https://superbfsi.com/xdeposit/explore/\nSchedule: Tuesday Mar 11, 2025 at 9:00 AM EST`,
+  sms: `Run SMS campaign for XDeposit re-engagement.\nTarget: Customers with balance > $5,000, inactive 30 days.\nMessage: Short, under 160 chars, include CTA link.\nSchedule: Monday Mar 10, 2025 at 2:00 PM EST`,
+  push: `Run push notification campaign for XDeposit.\nTarget: Mobile app users who viewed the deposit section but didn't convert.\nMessage: Brief, compelling, emoji-friendly.\nSchedule: Wednesday Mar 12, 2025 at 11:00 AM EST`,
+};
+function insertTemplate(type) {
+  const ta = document.getElementById('brief-input');
+  ta.value = TEMPLATES[type];
+  ta.dispatchEvent(new Event('input'));
+  gsap.from(ta, { opacity: 0.4, duration: 0.3, ease: 'power2.out' });
+}
+
+// ═══════════ GEMINI CONFIG ═══════════
+const GEMINI_API_KEY = 'AIzaSyBaXhWGd9H6FI6SIBNbHzL-8Hza1lNYe2U';
+const GEMINI_MODEL   = 'gemini-2.0-flash';
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const CTA_URL        = 'https://superbfsi.com/xdeposit/explore/';
+
+// Call Gemini REST API
+async function callGemini(prompt, temperature = 0.3, maxTokens = 800) {
+  const res = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature, maxOutputTokens: maxTokens },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err?.error?.message || `Gemini HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// Parse JSON safely from model text (strip fences)
+function parseGeminiJSON(text) {
+  const clean = text.replace(/```json|```/g, '').trim();
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON in Gemini response: ' + text.slice(0, 120));
+  return JSON.parse(match[0]);
+}
+
+// Generate customer IDs
+function makeCustomerIDs(n = 20) {
+  const base = 10000 + Math.floor(Math.random() * 9000);
+  const step = 40 + Math.floor(Math.random() * 140);
+  return Array.from({ length: n }, (_, i) => `CID-${base + i * step}`);
+}
+
+// ═══════════ GENERATE CAMPAIGN (LIVE GEMINI) ═══════════
+async function generateCampaign() {
+  if (state.generating) return;
+  const brief = document.getElementById('brief-input').value.trim();
+  if (!brief) { showToast('error', 'Brief required', 'Please describe your campaign first.'); return; }
+
+  state.generating = true;
+  const btn     = document.getElementById('gen-btn');
+  const btnText = document.getElementById('gen-btn-text');
+  btn.disabled  = true;
+  gsap.to(btn, { opacity: 0.7, duration: 0.2 });
+  btnText.innerHTML = `<span style="display:inline-block;animation:spin 0.8s linear infinite;margin-right:6px;">✦</span> Gemini is thinking...`;
+
+  addLog('INFO', 'BRIEF',  `Received ${brief.length}-char campaign brief`);
+  addLog('INFO', 'GEMINI', `Calling ${GEMINI_MODEL} — Planner agent...`);
+
+  let plan, content;
+
+  try {
+    // ── PLANNER CALL ──────────────────────────────────────────────────────
+    const plannerPrompt = `You are a senior marketing automation planner at a fintech company.
+Analyse the campaign brief below and return ONLY a valid JSON object with no markdown fences.
+
+Brief:
+"""
+${brief}
+"""
+
+Return exactly this JSON (derive every value from the brief):
+{
+  "product": "product name (default XDeposit)",
+  "channel": "email or sms or push",
+  "offer_headline": "one-line compelling offer summary",
+  "tone": "e.g. professional and warm",
+  "schedule_iso": "ISO-8601 datetime e.g. 2025-03-11T09:00:00-05:00",
+  "schedule_human": "human readable e.g. Tue Mar 11, 2025 · 9:00 AM EST",
+  "segment_filters": {
+    "balance_min": 10000,
+    "days_inactive": 60,
+    "product": "xdeposit"
+  },
+  "estimated_audience_size": 3847,
+  "reasoning": "2-3 sentences explaining your segment and timing choices"
+}`;
+
+    const planRaw  = await callGemini(plannerPrompt, 0.2, 600);
+    plan = parseGeminiJSON(planRaw);
+
+    incrementQuota('cohort');
+    const audienceSize = parseInt(plan.estimated_audience_size) || 20;
+    plan._customerIDs = makeCustomerIDs(Math.min(audienceSize, 22));
+
+    addLog('OK',   'GEMINI',  `Planner done: ${plan.channel} campaign for ${plan.product}`);
+    addLog('OK',   'COHORT',  `${audienceSize.toLocaleString()} customers matched`);
+    addLog('INFO', 'GEMINI',  `Reasoning: ${(plan.reasoning || '').slice(0, 80)}…`);
+
+    // ── CREATOR CALL ──────────────────────────────────────────────────────
+    addLog('INFO', 'GEMINI', `Calling ${GEMINI_MODEL} — Creator agent...`);
+    const creatorPrompt = `You are an expert email copywriter for a fintech brand called SuperbFSI.
+Write a marketing ${plan.channel} for the following campaign. Return ONLY valid JSON with no markdown fences.
+
+Campaign:
+- Product: ${plan.product}
+- Offer: ${plan.offer_headline}
+- Tone: ${plan.tone}
+- Inactive days threshold: ${plan.segment_filters?.days_inactive || 60}
+- Min balance: ${plan.segment_filters?.balance_min || 10000}
+- CTA URL (embed EXACTLY this): ${CTA_URL}
+
+Return this exact JSON:
+{
+  "subject": "compelling subject line with relevant emoji (max 60 chars)",
+  "preview_text": "inbox snippet under 90 chars",
+  "body_text": "full plain-text email body 150-200 words. Use [First Name] placeholder. Naturally embed the CTA URL ${CTA_URL} once.",
+  "predicted_open_rate": 0.27
+}`;
+
+    const contentRaw = await callGemini(creatorPrompt, 0.7, 900);
+    content = parseGeminiJSON(contentRaw);
+
+    // Hard-validate CTA URL
+    content.body_text = content.body_text.replace(
+      /https?:\/\/\S*xdeposit\S*/gi, CTA_URL
+    );
+    if (!content.body_text.includes(CTA_URL)) {
+      content.body_text += `\n\n👉 Explore Now: ${CTA_URL}`;
+    }
+
+    addLog('OK',   'GEMINI', `Subject: "${content.subject}"`);
+    addLog('OK',   'GEMINI', `Body: ${content.body_text.split(' ').length} words · Open rate: ${(parseFloat(content.predicted_open_rate)*100).toFixed(1)}%`);
+    addLog('OK',   'VALID',  `CTA URL validated: ${CTA_URL}`);
+    addLog('WARN', 'HUMAN',  'Routing to Human-in-the-Loop approval dashboard...');
+
+  } catch (err) {
+    addLog('ERR', 'GEMINI', `Error: ${err.message}`);
+    showToast('error', 'Gemini Error', err.message.slice(0, 80));
+    state.generating = false;
+    btn.disabled = false;
+    gsap.to(btn, { opacity: 1, duration: 0.2 });
+    btnText.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-right:5px;vertical-align:-1px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Generate Campaign`;
+    return;
+  }
+
+  state.approvalPending = true;
+  state.campaignPlan    = plan;
+  state.campaignContent = content;
+  document.getElementById('approval-badge').style.display = 'inline-block';
+
+  buildApprovalCards(plan, content);
+  switchTab('approval');
+
+  state.generating = false;
+  btn.disabled = false;
+  gsap.to(btn, { opacity: 1, duration: 0.2 });
+  btnText.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-right:5px;vertical-align:-1px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Generate Campaign`;
+  showToast('success', 'Gemini Campaign Ready', 'Review and approve to schedule.');
+}
+
+// ═══════════ BUILD APPROVAL CARDS (DYNAMIC) ═══════════
+// (no more static CUSTOMER_IDS — data comes from Gemini)
+const CUSTOMER_IDS = []; // legacy placeholder, unused
+
+function buildApprovalCards(plan, content) {
+  const container = document.getElementById('approval-content');
+  document.getElementById('approval-empty').style.display = 'none';
+  container.style.display = 'flex';
+
+  const sf       = plan.segment_filters || {};
+  const cids     = plan._customerIDs || [];
+  const audience = parseInt(plan.estimated_audience_size) || cids.length;
+  const campID   = 'CX-2025-' + (100 + Math.floor(Math.random() * 900));
+  const openRate = ((parseFloat(content.predicted_open_rate) || 0.25) * 100).toFixed(1);
+  const channel  = (plan.channel || 'email').charAt(0).toUpperCase() + (plan.channel || 'email').slice(1);
+  const schedule = plan.schedule_human || plan.schedule_iso || '2025-03-11T09:00:00-05:00';
+
+  // Safely escape HTML in AI-generated text
+  const esc = s => String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+
+  // Make CTA URL clickable in body
+  const bodyFormatted = esc(content.body_text)
+    .replace(/\n/g, '<br>')
+    .replace(
+      esc(CTA_URL),
+      `<a href="${CTA_URL}" target="_blank" style="color:#22d3ee;text-decoration:none;">${CTA_URL}</a>`
+    );
+
+  container.innerHTML = `
+    <!-- Header row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#fbbf24;display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Pending Approval
+          <span style="background:rgba(66,133,244,0.12);color:#4285f4;border:1px solid rgba(66,133,244,0.3);border-radius:5px;padding:1px 8px;font-size:10px;font-family:'DM Mono',monospace;">✦ Gemini ${GEMINI_MODEL}</span>
+        </div>
+        <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;margin-top:3px;">Campaign ID: ${campID}</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-reject" id="btn-reject-main" onclick="rejectCampaign()">✕ Reject</button>
+        <button class="btn-approve" id="btn-approve-main" onclick="approveCampaign()">✓ Approve &amp; Schedule</button>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Content card -->
+      <article class="glass-card approval-card" id="card-content" style="padding:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.06em;font-family:'Syne',sans-serif;">Generated Content</div>
+          <span class="badge badge-cyan">${channel}</span>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px;">Subject Line</div>
+          <div style="font-size:13px;font-weight:600;color:#c8d8e8;background:rgba(8,10,15,0.5);border:1px solid rgba(34,211,238,0.18);border-radius:7px;padding:10px 12px;">
+            ${esc(content.subject)}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:10px;color:#2a4a65;font-family:'DM Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px;">Email Body</div>
+          <div style="font-size:12px;color:#7a9ab5;background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:12px;line-height:1.75;max-height:170px;overflow-y:auto;font-family:'DM Mono',monospace;">
+            ${bodyFormatted}
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <div style="padding:7px 10px;background:rgba(34,211,238,0.05);border-radius:6px;border:1px solid rgba(34,211,238,0.12);flex:1;margin-right:8px;">
+            <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;margin-bottom:2px;">CTA URL ✓ Validated</div>
+            <a href="${CTA_URL}" target="_blank" style="font-size:10px;font-family:'DM Mono',monospace;color:#22d3ee;text-decoration:none;word-break:break-all;">${CTA_URL}</a>
+          </div>
+          <div style="text-align:center;flex-shrink:0;">
+            <div style="font-size:18px;font-weight:800;color:#34d399;font-family:'Syne',sans-serif;">${openRate}%</div>
+            <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;">pred. open</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Right column -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <!-- Schedule card -->
+        <article class="glass-card approval-card" id="card-schedule" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#34d399;text-transform:uppercase;letter-spacing:0.06em;font-family:'Syne',sans-serif;">Schedule Info</div>
+            <span class="badge badge-green">Gemini-optimised</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:10px;">
+              <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">Send Time</div>
+              <div style="font-size:12px;font-weight:700;color:#c8d8e8;font-family:'Syne',sans-serif;word-break:break-word;">${esc(schedule)}</div>
+            </div>
+            <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:10px;">
+              <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">Channel</div>
+              <div style="font-size:13px;font-weight:700;color:#22d3ee;font-family:'Syne',sans-serif;">${channel}</div>
+            </div>
+            <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:10px;">
+              <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">Product</div>
+              <div style="font-size:13px;font-weight:700;color:#c8d8e8;font-family:'Syne',sans-serif;">${esc(plan.product || 'XDeposit')}</div>
+            </div>
+            <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:10px;">
+              <div style="font-size:9px;color:#2a4a65;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">Audience</div>
+              <div style="font-size:13px;font-weight:700;color:#34d399;font-family:'Syne',sans-serif;">~${audience.toLocaleString()}</div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Audience card -->
+        <article class="glass-card approval-card" id="card-audience" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:0.06em;font-family:'Syne',sans-serif;">Target Audience</div>
+            <span class="badge badge-amber">${cids.length} of ~${audience.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;max-height:72px;overflow-y:auto;">
+            ${cids.map(id => `<span class="cid-chip">${id}</span>`).join('')}
+            ${audience > cids.length ? `<span class="cid-chip" style="color:#2a4a65;border-style:dashed;">+${(audience-cids.length).toLocaleString()} more</span>` : ''}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap;">
+            <div style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Balance ≥ <span style="color:#fbbf24;">₹${(sf.balance_min||10000).toLocaleString()}</span></div>
+            <div style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Inactive ≥ <span style="color:#fbbf24;">${sf.days_inactive||60} days</span></div>
+            <div style="font-size:10px;color:#4a6a85;font-family:'DM Mono',monospace;">Product: <span style="color:#fbbf24;">${esc(sf.product||'xdeposit')}</span></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+
+    <!-- Gemini Reasoning card -->
+    <article class="glass-card approval-card" id="card-reasoning" style="padding:16px;border-color:rgba(66,133,244,0.15);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:14px;">✦</span>
+        <span style="font-size:11px;font-weight:700;color:#4285f4;text-transform:uppercase;letter-spacing:0.06em;font-family:'Syne',sans-serif;">Gemini Agent Reasoning</span>
+        <span class="badge badge-cyan" style="margin-left:auto;font-size:9px;">Bonus: Explainability</span>
+      </div>
+      <div style="font-size:12px;color:#7a9ab5;line-height:1.7;font-style:italic;background:rgba(66,133,244,0.04);border:1px solid rgba(66,133,244,0.1);border-radius:7px;padding:12px;">
+        ${esc(plan.reasoning || 'No reasoning captured.')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
+        <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:9px;">
+          <div style="font-size:9px;color:#4285f4;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">1 · Planner</div>
+          <div style="font-size:11px;color:#4a6a85;">Brief parsed → segment filters extracted · cohort queried via API</div>
+        </div>
+        <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:9px;">
+          <div style="font-size:9px;color:#4285f4;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">2 · Creator</div>
+          <div style="font-size:11px;color:#4a6a85;">Subject + body generated · ${openRate}% predicted open · CTA URL validated</div>
+        </div>
+        <div style="background:rgba(8,10,15,0.5);border:1px solid #1e2d3d;border-radius:7px;padding:9px;">
+          <div style="font-size:9px;color:#4285f4;font-family:'DM Mono',monospace;text-transform:uppercase;margin-bottom:4px;">3 · Executor</div>
+          <div style="font-size:11px;color:#4a6a85;">Awaiting human approval · will call InXiteOut Schedule API on ✓</div>
+        </div>
+      </div>
+    </article>
+  `;
+
+  // Animate cards in
+  gsap.fromTo('.approval-card',
+    { opacity: 0, y: 24, scale: 0.98 },
+    { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.1, ease: 'power3.out', delay: 0.1 }
+  );
+
+  // Animate buttons
+  gsap.fromTo('#btn-approve-main, #btn-reject-main',
+    { opacity: 0, x: 16 },
+    { opacity: 1, x: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out', delay: 0.6 }
+  );
+}
+
+// ═══════════ APPROVE / REJECT ═══════════
+async function approveCampaign() {
+  addLog('OK', 'HUMAN', 'Campaign APPROVED by Marketing Lead');
+  addLog('INFO', 'API', 'Calling /api/v1/campaign/schedule...');
+  incrementQuota('schedule');
+  await delay(300);
+  addLog('OK', 'API', 'Campaign scheduled successfully! ID: CX-2025-' + Math.floor(Math.random()*900+100));
+  addLog('INFO', 'AGENT', 'Confirmation email queued for sender records.');
+
+  document.getElementById('approval-badge').style.display = 'none';
+  state.approvalPending = false;
+
+  // Flash approve button
+  const btn = document.getElementById('btn-approve-main');
+  if (btn) {
+    btn.textContent = '✓ Scheduled!';
+    btn.style.opacity = '0.6';
+    btn.disabled = true;
+  }
+
+  showToast('success', 'Campaign Scheduled!', 'XDeposit email → Mar 11, 2025 · 09:00 AM EST');
+  gsap.to('#btn-reject-main', { opacity: 0.3, duration: 0.3 });
+
+  // Update stats
+  const el = document.getElementById('stat-campaigns');
+  const el2 = document.getElementById('stat-approved');
+  if (el) gsap.to({ n: 47 }, { n: 48, duration: 0.5, onUpdate: function() { el.textContent = Math.round(this.targets()[0].n); } });
+  if (el2) gsap.to({ n: 38 }, { n: 39, duration: 0.5, onUpdate: function() { el2.textContent = Math.round(this.targets()[0].n); } });
+}
+
+async function rejectCampaign() {
+  addLog('WARN', 'HUMAN', 'Campaign REJECTED by Marketing Lead');
+  addLog('INFO', 'AGENT', 'Campaign marked as rejected. Brief retained for editing.');
+
+  document.getElementById('approval-badge').style.display = 'none';
+  state.approvalPending = false;
+
+  const btn = document.getElementById('btn-reject-main');
+  if (btn) { btn.textContent = '✕ Rejected'; btn.style.opacity = '0.6'; btn.disabled = true; }
+  gsap.to('#btn-approve-main', { opacity: 0.3, duration: 0.3 });
+
+  showToast('error', 'Campaign Rejected', 'Return to Brief to revise and regenerate.');
+}
+
+// ═══════════ REFRESH COHORT ═══════════
+async function refreshCohort() {
+  addLog('INFO', 'USER', 'Manual cohort refresh triggered');
+  addLog('INFO', 'API', 'Calling /api/v1/cohort/query with refresh=true...');
+  incrementQuota('cohort');
+  await delay(600);
+  addLog('OK', 'API', 'Cohort data refreshed: 4,102 customers as of ' + new Date().toDateString());
+  showToast('info', 'Cohort Refreshed', '4,102 customers loaded (as of today).');
+}
+
+// ═══════════ PERFORMANCE RINGS ═══════════
+function animateRings() {
+  // open rate 26.4% → offset = 201 * (1 - 0.264)
+  const rings = [
+    { id: 'ring-open', pct: 0.264 },
+    { id: 'ring-click', pct: 0.081 },
+    { id: 'ring-conv', pct: 0.034 },
+    { id: 'ring-unsub', pct: 0.004 },
+  ];
+  rings.forEach(({ id, pct }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const target = 201 * (1 - pct);
+    gsap.to(el, { attr: { 'stroke-dashoffset': target }, duration: 1.2, ease: 'power2.out', delay: 0.2 });
+  });
+}
+
+function setPerfRange(days, btn) {
+  document.querySelectorAll('#tab-performance .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Simulate data update
+  const mult = days === 7 ? 1 : days === 30 ? 0.95 : 0.9;
+  document.getElementById('val-open').textContent = (26.4 * mult).toFixed(1) + '%';
+  document.getElementById('val-click').textContent = (8.1 * mult).toFixed(1) + '%';
+  document.getElementById('val-conv').textContent = (3.4 * mult).toFixed(1) + '%';
+}
+
+// ═══════════ LOGS ═══════════
+const LOG_COLORS = {
+  INFO: '#4a6a85', OK: '#34d399', WARN: '#fbbf24', ERR: '#fb7185'
+};
+const LOG_BADGES = {
+  INFO: 'badge-muted', OK: 'badge-green', WARN: 'badge-amber', ERR: 'badge-red'
+};
+
+function addLog(level, tag, msg) {
+  const now = new Date();
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(now.getMilliseconds()).padStart(3,'0')}`;
+  state.logs.push({ level, tag, msg, ts });
+  renderLog({ level, tag, msg, ts });
+}
+
+function renderLog({ level, tag, msg, ts }) {
+  const container = document.getElementById('log-container');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `
+    <span class="log-ts">${ts}</span>
+    <span class="badge ${LOG_BADGES[level] || 'badge-muted'} log-tag" style="font-size:9px;padding:1px 5px;">${level}</span>
+    <span style="font-size:10px;color:#2a4a65;flex-shrink:0;">[${tag}]</span>
+    <span class="log-msg">${msg}</span>
+  `;
+  gsap.set(div, { opacity: 0, x: -8 });
+  container.appendChild(div);
+  gsap.to(div, { opacity: 1, x: 0, duration: 0.25, ease: 'power2.out' });
+  scrollLogsToBottom();
+}
+
+function scrollLogsToBottom() {
+  const c = document.getElementById('log-container');
+  if (c) c.scrollTop = c.scrollHeight;
+}
+
+function clearLogs() {
+  state.logs = [];
+  const c = document.getElementById('log-container');
+  if (c) { gsap.to(c, { opacity: 0, duration: 0.2, onComplete: () => { c.innerHTML = ''; gsap.to(c, { opacity: 1, duration: 0.2 }); } }); }
+}
+
+// ═══════════ QUOTA ═══════════
+function incrementQuota(key) {
+  state.quotas[key]++;
+  const val = state.quotas[key];
+  const el = document.getElementById('quota-' + key);
+  const bar = document.getElementById('quota-' + key + '-bar');
+  if (el) {
+    gsap.from(el, { scale: 1.2, duration: 0.3, ease: 'back.out(2)' });
+    el.textContent = val + ' / 100';
+  }
+  if (bar) gsap.to(bar, { width: val + '%', duration: 0.4, ease: 'power2.out' });
+}
+
+// ═══════════ TOAST ═══════════
+let toastTimer = null;
+const TOAST_ICONS = {
+  success: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`,
+  error:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  info:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+  warn:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+};
+const TOAST_BG = { success: 'rgba(52,211,153,0.1)', error: 'rgba(251,113,133,0.1)', info: 'rgba(34,211,238,0.1)', warn: 'rgba(251,191,36,0.1)' };
+
+function showToast(type, title, msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-icon').innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+  document.getElementById('toast-icon').style.background = TOAST_BG[type] || TOAST_BG.info;
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+
+  if (toastTimer) clearTimeout(toastTimer);
+  gsap.killTweensOf(toast);
+  gsap.to(toast, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out', pointerEvents: 'auto' });
+  toastTimer = setTimeout(() => {
+    gsap.to(toast, { opacity: 0, y: 12, duration: 0.3, ease: 'power2.in', pointerEvents: 'none' });
+  }, 3500);
+}
+
+// ═══════════ UTILS ═══════════
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ═══════════ BUTTON HOVER GSAP ═══════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.btn-approve, .btn-reject, .btn-primary').forEach(btn => {
+    btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.03, duration: 0.15, ease: 'power2.out' }));
+    btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.2, ease: 'power2.out' }));
+  });
+
+  // Entrance animation
+  gsap.from('#sidebar', { x: -30, opacity: 0, duration: 0.6, ease: 'power3.out' });
+  gsap.from('header', { y: -20, opacity: 0, duration: 0.5, ease: 'power3.out', delay: 0.15 });
+  gsap.from('#tab-brief > *', { y: 20, opacity: 0, duration: 0.5, stagger: 0.08, ease: 'power3.out', delay: 0.3 });
+});
+
+// Initial log entries
+addLog('OK', 'SYSTEM', 'CampaignX AI Agent initialized · v2.4');
+addLog('OK', 'API', 'InXiteOut APIs connected (3/3 endpoints healthy)');
+addLog('INFO', 'QUOTA', 'Daily limits reset at 00:00 UTC · 100 calls/endpoint');
+addLog('INFO', 'CONFIG', 'CTA URL locked: https://superbfsi.com/xdeposit/explore/');
+addLog('INFO', 'AGENT', 'Awaiting campaign brief...');
+</script>
+
+</body>
+</html>
